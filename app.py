@@ -50,14 +50,24 @@ def gradio_interface(prompt):
         return f"An error occurred: {str(e)}"
 
 # Define the Gradio interface
+
 interface = gr.Interface(
     fn=gradio_interface,
-    inputs="text",
-    outputs="text",
-    title="Query Interface with Memory History"
+    theme = gr.themes.Soft(),
+    inputs=gr.Textbox(lines=2, placeholder="Enter your query here...", label="Query"),
+    outputs=gr.Textbox(label="Response"),
+    title="FishQ-RAG",
+    description="RAG Agent for 2021 CPCSEA Fish Experimentation Guidelines",
+    article="The guidelines are intended to provide information on the humane procedures for holding, handling, and sampling fish for experimental, research, or teaching purposes.",
+    examples=[
+        ["What is CPCSEA?"],
+        ["Give me guidlines for Zebrafish."],
+        ["Write an compact email about the guidelines with their background information.."]
+    ],
+    live=True,
+    allow_flagging="never",
+    css=".output {background-color: lightyellow;}"
 )
 
 # Launch the Gradio interface
 interface.launch(share=True)
-
-
