@@ -14,7 +14,7 @@ import os
 from huggingface_hub import login
 
 #Define the LLM to be used
-Settings.llm = HuggingFaceInferenceAPI(model_name = "mistralai/Mixtral-8x7B-Instruct-v0.1")
+Settings.llm = HuggingFaceInferenceAPI(model_name = "meta-llama/Meta-Llama-3-8B-Instruct")
 
 #Define the embedding model
 embed_model = HuggingFaceEmbedding(model_name="thenlper/gte-large")
@@ -25,49 +25,43 @@ PERSIST_DIR = "./storage"
 storage_context = StorageContext.from_defaults(persist_dir = PERSIST_DIR)
 index = load_index_from_storage(storage_context,index_id = "vector_index")
 
+
 def gradio_interface(prompt):
     try:
-        # Replace 'storage_context' with the actual storage context if needed
         index = load_index_from_storage(storage_context, index_id="vector_index")
-        
         retriever = VectorIndexRetriever(
             index=index,
             similarity_top_k=2,
         )
-        
         response_synthesizer = get_response_synthesizer()
-        
         query_engine = RetrieverQueryEngine(
             retriever=retriever,
             response_synthesizer=response_synthesizer,
-            node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)],
+            node_postprocessors=[SimilarityPostprocessor(similarity_cutoff=0.7)]            
         )
-        
         response = query_engine.query(prompt)
         return response
-    
+
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
-# Define the Gradio interface
+with gr.Blocks(theme=gr.themes.Soft()) as interface:
+    gr.Markdown("# FishQ-RAG\nRAG Agent for 2021 CPCSEA Fish Experimentation Guidelines\n\nThe guidelines are intended to provide information on the humane procedures for holding, handling, and sampling fish for experimental, research, or teaching purposes.")
+    response = gr.Textbox(lines=10,label="Response",show_copy_button=True)
+    query = gr.Textbox(lines=2, placeholder="Ask me about guidelines here... Click submit or Shift + Enter.", label="Query")
 
-interface = gr.Interface(
-    fn=gradio_interface,
-    theme = gr.themes.Soft(),
-    inputs=gr.Textbox(lines=2, placeholder="Enter your query here...", label="Query"),
-    outputs=gr.Textbox(label="Response"),
-    title="FishQ-RAG",
-    description="RAG Agent for 2021 CPCSEA Fish Experimentation Guidelines",
-    article="The guidelines are intended to provide information on the humane procedures for holding, handling, and sampling fish for experimental, research, or teaching purposes.",
-    examples=[
-        ["What is CPCSEA?"],
-        ["Give me guidlines for Zebrafish."],
-        ["Write an compact email about the guidelines with their background information.."]
-    ],
-    live=True,
-    allow_flagging="never",
-    css=".output {background-color: lightyellow;}"
-)
+    gr.Examples(
+        examples=[
+            ["What is CPCSEA?"],
+            ["Give me guidelines for Zebrafish."],
+            ["Write a compact email about the guidelines with their background information."]
+        ],
+        inputs=query
+    )
 
-# Launch the Gradio interface
+    submit_btn = gr.Button("Submit")
+    query.submit(gradio_interface, query, response)
+    submit_btn.click(gradio_interface, inputs=query, outputs=response)
+
 interface.launch(share=True)
+
